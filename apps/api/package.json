@@ -10,7 +10,11 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo \"(lint placeholder — api)\"",
     "test": "vitest run",
-    "prisma": "prisma"
+    "prisma": "prisma",
+    "db:seed": "prisma db seed"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",
