@@ -18,6 +18,21 @@ export function buildApp(): FastifyInstance {
     logger: process.env.NODE_ENV !== 'test',
   });
 
+  // Aceita corpo JSON vazio (POSTs de ação sem body, ex.: close/reset) em vez de
+  // estourar FST_ERR_CTP_EMPTY_JSON_BODY.
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    const text = body as string;
+    if (!text || text.length === 0) {
+      done(null, undefined);
+      return;
+    }
+    try {
+      done(null, JSON.parse(text));
+    } catch (e) {
+      done(e as Error, undefined);
+    }
+  });
+
   // Tradução de erros para o formato { error: { code, message } } (ver SPEC §8).
   app.setErrorHandler((err: FastifyError, req, reply) => {
     if (err instanceof AppError) {
@@ -30,6 +45,12 @@ export function buildApp(): FastifyInstance {
     }
     if (err.validation) {
       return reply.code(400).send({ error: { code: 'INVALID_INPUT', message: err.message } });
+    }
+    // Erros do próprio Fastify (ex.: corpo JSON vazio) trazem statusCode 4xx — respeitar.
+    if (typeof err.statusCode === 'number' && err.statusCode >= 400 && err.statusCode < 500) {
+      return reply
+        .code(err.statusCode)
+        .send({ error: { code: err.code ?? 'BAD_REQUEST', message: err.message } });
     }
     req.log.error(err);
     return reply.code(500).send({ error: { code: 'INTERNAL', message: 'Erro interno' } });

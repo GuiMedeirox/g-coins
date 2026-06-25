@@ -13,10 +13,13 @@ export const wsUrl = (token?: string): string =>
   `${API_URL.replace(/^http/, 'ws')}/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 
 async function request<T>(path: string, opts: RequestInit = {}, token?: string): Promise<T> {
+  const hasBody = opts.body !== undefined && opts.body !== null;
   const res = await fetch(`${API_URL}${path}`, {
     ...opts,
     headers: {
-      'content-type': 'application/json',
+      // content-type só quando há corpo: POSTs sem body (close/reset) não podem
+      // mandar application/json com corpo vazio (Fastify rejeita).
+      ...(hasBody ? { 'content-type': 'application/json' } : {}),
       ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...opts.headers,
     },

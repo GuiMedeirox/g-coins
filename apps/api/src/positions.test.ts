@@ -143,6 +143,28 @@ describe('Trading & P&L (US-3..US-5)', () => {
     expect(Number(me.json().wallet.balance)).toBeGreaterThanOrEqual(0);
   });
 
+  it('fechar aceita corpo JSON vazio (regressão: content-type json sem body)', async () => {
+    const { token } = await registerUser(app);
+    const asset = await createAsset(100);
+
+    const open = await app.inject({
+      method: 'POST',
+      url: '/positions',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { assetId: asset.id, side: 'LONG', size: 50 },
+    });
+    const posId = open.json().id;
+
+    // Simula o navegador: content-type application/json com corpo vazio.
+    const close = await app.inject({
+      method: 'POST',
+      url: `/positions/${posId}/close`,
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    });
+    expect(close.statusCode).toBe(200);
+    expect(close.json().status).toBe('CLOSED');
+  });
+
   it('fechar uma posição já fechada retorna 409', async () => {
     const { token } = await registerUser(app);
     const asset = await createAsset(100);
