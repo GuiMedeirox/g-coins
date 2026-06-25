@@ -64,6 +64,7 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
   const [wallet, setWallet] = useState<WalletDTO | null>(null);
   const [assets, setAssets] = useState<AssetDTO[]>([]);
   const [positions, setPositions] = useState<PositionDTO[]>([]);
+  const [history, setHistory] = useState<PositionDTO[]>([]);
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [unrealized, setUnrealized] = useState<Record<string, number>>({});
   const [size, setSize] = useState(100);
@@ -72,9 +73,14 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
   const wsRef = useRef<WebSocket | null>(null);
 
   const refresh = useCallback(async () => {
-    const [me, list] = await Promise.all([api.me(token), api.positions(token, 'OPEN')]);
+    const [me, open, closed] = await Promise.all([
+      api.me(token),
+      api.positions(token, 'OPEN'),
+      api.positions(token, 'CLOSED'),
+    ]);
     setWallet(me.wallet);
-    setPositions(list);
+    setPositions(open);
+    setHistory(closed);
   }, [token]);
 
   useEffect(() => {
@@ -127,6 +133,17 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
     }
   };
 
+  const reset = async () => {
+    if (!confirm('Resetar a carteira? Fecha as posições abertas e volta ao saldo inicial.')) return;
+    try {
+      await api.reset(token);
+      await refresh();
+      wsRef.current?.send(JSON.stringify({ type: 'refresh-positions' } satisfies ClientMessage));
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Falha ao resetar');
+    }
+  };
+
   const symbolOf = (assetId: string) => assets.find((a) => a.id === assetId)?.symbol ?? assetId;
 
   return (
@@ -142,11 +159,14 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
       </div>
 
       {wallet && (
-        <div style={card}>
+        <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ color: muted }}>Saldo livre</span>
           <strong style={{ fontSize: 20 }}>{Number(wallet.balance).toFixed(2)} G</strong>
-          <span style={{ color: muted, marginLeft: 16 }}>Reservado</span>
+          <span style={{ color: muted, marginLeft: 8 }}>Reservado</span>
           <strong>{Number(wallet.reserved).toFixed(2)} G</strong>
+          <button style={{ ...btn, marginLeft: 'auto' }} onClick={reset}>
+            resetar carteira
+          </button>
         </div>
       )}
 
@@ -215,6 +235,50 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
                       <button style={btn} onClick={() => close(p.id)}>
                         fechar
                       </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section style={card}>
+        <h3 style={{ marginTop: 0 }}>Histórico</h3>
+        {history.length === 0 ? (
+          <p style={{ color: muted }}>Sem trades fechados ainda.</p>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ textAlign: 'left', color: muted, fontSize: 13 }}>
+                <th>Ativo</th>
+                <th>Lado</th>
+                <th style={{ textAlign: 'right' }}>Tam.</th>
+                <th style={{ textAlign: 'right' }}>Entrada</th>
+                <th style={{ textAlign: 'right' }}>Saída</th>
+                <th style={{ textAlign: 'right' }}>P&L</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((p) => {
+                const pnl = Number(p.pnl ?? 0);
+                return (
+                  <tr key={p.id} style={{ borderTop: '1px solid #f1f5f9' }}>
+                    <td>{symbolOf(p.assetId)}</td>
+                    <td style={{ color: p.side === 'LONG' ? green : red }}>{p.side}</td>
+                    <td style={{ textAlign: 'right' }}>{Number(p.size).toFixed(2)}</td>
+                    <td style={{ textAlign: 'right' }}>{Number(p.entryPrice).toFixed(4)}</td>
+                    <td style={{ textAlign: 'right' }}>{p.exitPrice ? Number(p.exitPrice).toFixed(4) : '–'}</td>
+                    <td
+                      style={{
+                        textAlign: 'right',
+                        fontVariantNumeric: 'tabular-nums',
+                        color: pnl > 0 ? green : pnl < 0 ? red : muted,
+                      }}
+                    >
+                      {pnl >= 0 ? '+' : ''}
+                      {pnl.toFixed(2)}
                     </td>
                   </tr>
                 );

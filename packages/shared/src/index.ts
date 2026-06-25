@@ -82,6 +82,10 @@ export interface MeResponse {
   wallet: WalletDTO;
 }
 
+export interface ResetResponse {
+  wallet: WalletDTO;
+}
+
 // --- Posições (REST, ver SPEC §8 / US-3) ---
 
 export interface OpenPositionRequest {

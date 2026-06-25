@@ -4,6 +4,7 @@ import type {
   MeResponse,
   OpenPositionRequest,
   PositionDTO,
+  ResetResponse,
 } from '@g-coins/shared';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3333';
@@ -40,4 +41,5 @@ export const api = {
     request<PositionDTO>('/positions', { method: 'POST', body: JSON.stringify(body) }, token),
   close: (token: string, id: string) =>
     request<PositionDTO>(`/positions/${id}/close`, { method: 'POST' }, token),
+  reset: (token: string) => request<ResetResponse>('/me/reset', { method: 'POST' }, token),
 };
