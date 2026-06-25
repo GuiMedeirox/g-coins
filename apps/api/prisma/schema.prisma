@@ -1,0 +1,82 @@
+// Modelo de dados do G Coins — ver SPEC §5.
+// Valores monetários como Decimal (nunca float) — guardrail do CLAUDE.md.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  createdAt    DateTime   @default(now())
+  wallet       Wallet?
+  positions    Position[]
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  balance   Decimal  @default(0) @db.Decimal(18, 2)
+  reserved  Decimal  @default(0) @db.Decimal(18, 2)
+  updatedAt DateTime @updatedAt
+}
+
+enum Side {
+  LONG
+  SHORT
+}
+
+enum PositionStatus {
+  OPEN
+  CLOSED
+}
+
+model Asset {
+  id           String     @id @default(uuid())
+  symbol       String     @unique
+  name         String
+  currentPrice Decimal    @db.Decimal(18, 8)
+  config       Json
+  isActive     Boolean    @default(true)
+  positions    Position[]
+  candles      Candle[]
+}
+
+model Position {
+  id         String         @id @default(uuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id])
+  assetId    String
+  asset      Asset          @relation(fields: [assetId], references: [id])
+  side       Side
+  status     PositionStatus @default(OPEN)
+  size       Decimal        @db.Decimal(18, 2)
+  entryPrice Decimal        @db.Decimal(18, 8)
+  exitPrice  Decimal?       @db.Decimal(18, 8)
+  pnl        Decimal?       @db.Decimal(18, 2)
+  openedAt   DateTime       @default(now())
+  closedAt   DateTime?
+
+  @@index([userId, status])
+}
+
+model Candle {
+  id       String   @id @default(uuid())
+  assetId  String
+  asset    Asset    @relation(fields: [assetId], references: [id])
+  interval String
+  openTime DateTime
+  open     Decimal  @db.Decimal(18, 8)
+  high     Decimal  @db.Decimal(18, 8)
+  low      Decimal  @db.Decimal(18, 8)
+  close    Decimal  @db.Decimal(18, 8)
+
+  @@index([assetId, interval, openTime])
+}
