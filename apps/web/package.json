@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@g-coins/shared": "workspace:*",
+    "lightweight-charts": "^4.2.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
