@@ -82,11 +82,20 @@ export interface MeResponse {
   wallet: WalletDTO;
 }
 
+// --- Posições (REST, ver SPEC §8 / US-3) ---
+
+export interface OpenPositionRequest {
+  assetId: string;
+  side: Side;
+  size: number;
+}
+
 // --- Mensagens WebSocket (ver SPEC §8) ---
 
 export type ClientMessage =
   | { type: 'subscribe'; symbols: string[] }
-  | { type: 'unsubscribe'; symbols: string[] };
+  | { type: 'unsubscribe'; symbols: string[] }
+  | { type: 'refresh-positions' };
 
 export type ServerMessage =
   | { type: 'tick'; symbol: string; price: string; ts: string }

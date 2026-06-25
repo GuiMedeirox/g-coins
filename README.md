@@ -65,7 +65,7 @@ pnpm build       # build de produção
 | **M0** | Esqueleto: monorepo, Prisma, docker-compose, CI, healthcheck ✅ |
 | **M1** | Auth e carteira de G Coins (register/login JWT, `GET /me`) ✅ |
 | **M2** | Motor de preço (GBM) + ticks via WebSocket + candles + preço ao vivo no front ✅ |
-| M3 | Abrir/fechar long/short + P&L em tempo real |
+| **M3** | Abrir/fechar long/short + P&L em tempo real (transações, saldo protegido) ✅ |
 | M4 | Histórico de trades + reset de carteira |
 | M5 | Deploy AWS |
 

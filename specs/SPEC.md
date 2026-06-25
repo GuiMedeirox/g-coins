@@ -200,7 +200,10 @@ Casos cobertos: saldo insuficiente (`INSUFFICIENT_BALANCE`), posição já fecha
 ativo inativo (`ASSET_INACTIVE`), tamanho inválido (`INVALID_SIZE`).
 
 ### WebSocket (`/ws`)
-- Cliente envia: `{ type: "subscribe", symbols: ["GOLD-G"] }` / `{ type: "unsubscribe", ... }`
+- Autenticação opcional: `/ws?token=<jwt>`. Com token válido, a conexão também recebe P&L.
+- Cliente envia:
+  - `{ type: "subscribe", symbols: ["GOLD-G"] }` / `{ type: "unsubscribe", ... }`
+  - `{ type: "refresh-positions" }` — recarrega as posições abertas do usuário (após abrir/fechar).
 - Servidor envia:
   - `{ type: "tick", symbol, price, ts }` — a cada tick do ativo inscrito.
   - `{ type: "candle", symbol, candle }` — quando um candle fecha.
